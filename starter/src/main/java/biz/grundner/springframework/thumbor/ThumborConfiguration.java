@@ -20,11 +20,6 @@ public class ThumborConfiguration implements WebMvcConfigurer {
     private ApplicationContext applicationContext;
 
     @Bean
-    protected ThumborProperties thumborProperties() {
-        return new ThumborProperties();
-    }
-
-    @Bean
     protected ThumborRequestInterceptor thumborRequestInterceptor() {
         return new ThumborRequestInterceptor();
     }
@@ -37,7 +32,9 @@ public class ThumborConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        ThumborRequestInterceptor thumborRequestInterceptor = applicationContext.getBean(ThumborRequestInterceptor.class);
-        registry.addInterceptor(thumborRequestInterceptor).order(ThumborRequestInterceptor.ORDINAL);
+        ThumborRequestInterceptor thumborRequestInterceptor =
+                applicationContext.getBean(ThumborRequestInterceptor.class);
+        registry.addInterceptor(thumborRequestInterceptor)
+                .order(ThumborRequestInterceptor.ORDINAL);
     }
 }

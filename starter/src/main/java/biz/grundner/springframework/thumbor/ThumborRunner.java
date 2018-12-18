@@ -2,7 +2,6 @@ package biz.grundner.springframework.thumbor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
@@ -18,25 +17,25 @@ import java.util.stream.Collectors;
  * https://github.com/thumbor/thumbor/wiki/Running
  * https://thumbor.readthedocs.io/en/latest/image_loader.html
  * https://thumbor.readthedocs.io/en/latest/configuration.html
- *
  */
 public class ThumborRunner implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThumborRunner.class);
 
-    @Autowired
-    private ThumborProperties properties;
-
-    private Process thumborProcess;
+    private Process process;
+    private Integer exitValue;
 
     private int port = 8889;
     private String loggingLevel = "DEBUG";
 
-    private Integer exitValue;
-
     private OutputStream outputStream = System.out;
 
     private List<String> allowedSources = Collections.singletonList("localhost");
+    private String secureKey;
+
+    public Integer getExitValue() {
+        return exitValue;
+    }
 
     public int getPort() {
         return port;
@@ -58,10 +57,6 @@ public class ThumborRunner implements ApplicationRunner {
         this.loggingLevel = loggingLevel;
     }
 
-    public Integer getExitValue() {
-        return exitValue;
-    }
-
     public OutputStream getOutputStream() {
         return outputStream;
     }
@@ -79,18 +74,29 @@ public class ThumborRunner implements ApplicationRunner {
     }
 
     public void setAllowedSources(List<String> allowedSources) {
+        checkIfRunning();
+
         this.allowedSources = allowedSources;
     }
 
+    public String getSecureKey() {
+        return secureKey;
+    }
+
+    public void setSecureKey(String secureKey) {
+        checkIfRunning();
+
+        this.secureKey = secureKey;
+    }
+
     private void checkIfRunning() {
-        if (thumborProcess != null && thumborProcess.isAlive()) {
+        if (process != null && process.isAlive()) {
             throw new IllegalStateException("Thumbor already running");
         }
     }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-
         checkIfRunning();
 
         File configFile = File.createTempFile("thumbor", ".conf");
@@ -106,7 +112,6 @@ public class ThumborRunner implements ApplicationRunner {
                         .collect(Collectors.joining(",")));
             }
 
-            String secureKey = properties.getSecureKey();
             if (secureKey != null) {
                 printer.printf("SECURITY_KEY = '%s'", secureKey);
             }
@@ -122,19 +127,19 @@ public class ThumborRunner implements ApplicationRunner {
         builder.directory(directory);
         builder.redirectErrorStream(true);
 
-        thumborProcess = builder.start();
+        process = builder.start();
 
-        try (InputStreamReader reader = new InputStreamReader(thumborProcess.getInputStream());
+        try (InputStreamReader reader = new InputStreamReader(process.getInputStream());
              BufferedReader buffer = new BufferedReader(reader);
              PrintStream printer = new PrintStream(outputStream)) {
 
             String line;
-            while (thumborProcess.isAlive() && (line = buffer.readLine()) != null) {
+            while (process.isAlive() && (line = buffer.readLine()) != null) {
                 printer.println(line);
                 LOG.debug(line);
             }
         }
 
-        exitValue = thumborProcess.waitFor();
+        exitValue = process.waitFor();
     }
 }
