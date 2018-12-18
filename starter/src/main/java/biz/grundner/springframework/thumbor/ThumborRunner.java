@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
  * @author Stephan Grundner
  *
  * https://github.com/thumbor/thumbor/wiki/Running
+ * https://thumbor.readthedocs.io/en/latest/index.html
  * https://thumbor.readthedocs.io/en/latest/image_loader.html
  * https://thumbor.readthedocs.io/en/latest/configuration.html
  */
