@@ -1,10 +1,14 @@
 package biz.grundner.springframework.thumbor;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.io.UrlResource;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -31,7 +35,7 @@ public class ThumborRunner implements ApplicationRunner {
     private OutputStream outputStream = System.out;
 
     private List<String> allowedSources = Collections.singletonList("localhost");
-    private String secureKey;
+//    private String secureKey;
 
     public Integer getExitValue() {
         return exitValue;
@@ -79,19 +83,46 @@ public class ThumborRunner implements ApplicationRunner {
         this.allowedSources = allowedSources;
     }
 
-    public String getSecureKey() {
-        return secureKey;
-    }
-
-    public void setSecureKey(String secureKey) {
-        checkIfRunning();
-
-        this.secureKey = secureKey;
-    }
+//    public String getSecureKey() {
+//        return secureKey;
+//    }
+//
+//    public void setSecureKey(String secureKey) {
+//        checkIfRunning();
+//
+//        this.secureKey = secureKey;
+//    }
 
     private void checkIfRunning() {
         if (process != null && process.isAlive()) {
             throw new IllegalStateException("Thumbor already running");
+        }
+    }
+
+    protected String buildUrl(HttpServletRequest request) {
+        String size = request.getParameter("size");
+        String requestUrl = request.getRequestURL().toString();
+
+        String url = String.format("http://localhost:%d/%s/%s/%s",
+                port,
+                "unsafe",
+                size,
+                requestUrl);
+
+        return url;
+    }
+
+    protected void process(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String url = buildUrl(request);
+
+        UrlResource resource = new UrlResource(url);
+        try (InputStream inputStream = resource.getInputStream();
+             OutputStream outputStream = response.getOutputStream()) {
+
+            IOUtils.copy(inputStream, outputStream);
+            response.flushBuffer();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -112,9 +143,9 @@ public class ThumborRunner implements ApplicationRunner {
                         .collect(Collectors.joining(",")));
             }
 
-            if (secureKey != null) {
-                printer.printf("SECURITY_KEY = '%s'", secureKey);
-            }
+//            if (secureKey != null) {
+//                printer.printf("SECURITY_KEY = '%s'", secureKey);
+//            }
         }
 
         ProcessBuilder builder = new ProcessBuilder()
